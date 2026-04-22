@@ -1,0 +1,12 @@
+{
+    "name": "ServiceA",
+    "description": "Service A description",
+    "version": 1,
+    "metadata": {
+        "author": "Alice",
+        "tags": [
+            "tag3",
+            "tag4"
+        ]
+    }
+}

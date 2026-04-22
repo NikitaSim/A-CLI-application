@@ -1,0 +1,8 @@
+name: "ServiceX"
+description: "Some description"
+version: 1
+metadata:
+  author: "John Doe"
+  tags:
+    - "example"
+    - "config"

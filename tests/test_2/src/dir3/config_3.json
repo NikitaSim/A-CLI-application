@@ -1,0 +1,16 @@
+{
+    "info": {
+        "service_name": "ServiceB",
+        "details": {
+            "description": "Service B details",
+            "version_number": 2
+        }
+    },
+    "owner": {
+        "creator": "Bob"
+    },
+    "labels": [
+        "production",
+        "stable"
+    ]
+}
