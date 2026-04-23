@@ -21,7 +21,7 @@ func init() {
 	flag.StringVar(&flags.DirectoryPath, "d", "", "path to directory with files")
 }
 
-const postgresqlConnString = "postgres://user:password@localhost:5432/postgres"
+const postgresqlConnString = "postgres://user:password@localhost:5433/postgres"
 
 func main() {
 	// Инициализация 5 аргументов
@@ -31,16 +31,16 @@ func main() {
 		flag.Parse()
 	}
 
-	fmt.Println(flags.ConfigPath)
+	//fmt.Println(flags.ConfigPath)
 	configsPath := app.ProcessConfigs(flags.DirectoryPath)
-	fmt.Println(configsPath)
+	//fmt.Println(configsPath)
 
 	configs := config.ParseConfig(configsPath, flags.ConfigPath)
 
 	// for _, value := range configs {
 	// 	fmt.Println(value)
 	// }
-	err := db.DbInsert(configs)
+	err := db.DbInsert(configs, postgresqlConnString)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -10,11 +10,11 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func DbInsert(configs []models.Config) error {
+func DbInsert(configs []models.Config, dbConfig string) error {
 
 	ctx := context.Background()
 	// postgres://USERNAME:PASSWORD@HOST:PORT/DBNAME
-	conn, err := pgx.Connect(ctx, "postgres://postgres:nerpax2006@localhost:5432/postgres")
+	conn, err := pgx.Connect(ctx, dbConfig)
 	if err != nil {
 		fmt.Println("база не поднялась")
 		return err
