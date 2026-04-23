@@ -5,13 +5,17 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"mycli/internal/models"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+
+	"mycli/internal/models"
 
 	"gopkg.in/yaml.v3"
 )
+
+const workerCount = 5
 
 func parseWithSchemas(data map[string]interface{}, schemas []models.Schema) (models.Config, bool) {
 
@@ -115,6 +119,58 @@ func getByPath(data map[string]interface{}, path string) (interface{}, bool) {
 	return nil, false
 }
 
+func worker(jobs <-chan string, wg *sync.WaitGroup, result chan<- models.Config, schema models.JSONSchemas) {
+	defer wg.Done()
+
+	for path := range jobs { // можно распараллелить черех воркеров
+
+		if filepath.Ext(path) == ".json" {
+			file, err := os.Open(path)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+
+			conf := make(map[string]interface{})
+
+			err = json.NewDecoder(file).Decode(&conf)
+			if err != nil {
+				file.Close()
+				fmt.Println(err)
+				continue
+			}
+
+			value, ok := parseWithSchemas(conf, schema.Schemas)
+			if !ok {
+				fmt.Println("wrong path")
+				continue
+			}
+			result <- value
+
+			file.Close()
+
+		} else {
+			file, err := os.Open(path)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+
+			var yamlConfig models.Config
+
+			err = yaml.NewDecoder(file).Decode(&yamlConfig)
+			if err != nil {
+				file.Close()
+				fmt.Println(err)
+				continue
+			}
+			result <- yamlConfig
+
+			file.Close()
+		}
+	}
+}
+
 func ParseConfig(paths []string, yamlPath string) []models.Config {
 
 	var schema models.JSONSchemas
@@ -132,47 +188,28 @@ func ParseConfig(paths []string, yamlPath string) []models.Config {
 
 	configs := make([]models.Config, 0)
 
-	for _, path := range paths { // можно распараллелить черех воркеров
+	job := make(chan string)
+	result := make(chan models.Config, workerCount)
+	var wg sync.WaitGroup
+	wg.Add(workerCount)
 
-		if filepath.Ext(path) == ".json" {
-			file, err := os.Open(path)
-			if err != nil {
-				panic(err)
-			}
-			defer file.Close()
-			conf := make(map[string]interface{})
-
-			err = json.NewDecoder(file).Decode(&conf)
-			if err != nil {
-				panic(err)
-
-			}
-
-			value, ok := parseWithSchemas(conf, schema.Schemas)
-			if !ok {
-				fmt.Println("wrong path")
-				return nil
-			}
-
-			configs = append(configs, value)
-
-		} else {
-			file, err := os.Open(path)
-			if err != nil {
-				panic(err)
-			}
-			defer file.Close()
-
-			var yamlConfig models.Config
-
-			err = yaml.NewDecoder(file).Decode(&yamlConfig)
-			if err != nil {
-				panic(err)
-			}
-
-			configs = append(configs, yamlConfig)
-		}
-
+	for i := 0; i < workerCount; i++ {
+		go worker(job, &wg, result, schema)
 	}
+
+	for _, path := range paths { // можно распараллелить черех воркеров
+		job <- path
+	}
+	close(job)
+
+	go func() {
+		wg.Wait()
+		close(result)
+	}()
+
+	for value := range result {
+		configs = append(configs, value)
+	}
+
 	return configs
 }

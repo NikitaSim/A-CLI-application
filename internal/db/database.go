@@ -13,7 +13,7 @@ import (
 func DbInsert(configs []models.Config, dbConfig string) error {
 
 	ctx := context.Background()
-	// postgres://USERNAME:PASSWORD@HOST:PORT/DBNAME
+
 	conn, err := pgx.Connect(ctx, dbConfig)
 	if err != nil {
 		fmt.Println("база не поднялась")
